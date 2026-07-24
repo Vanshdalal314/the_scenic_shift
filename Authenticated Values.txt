@@ -1,0 +1,14 @@
+Supabase Database Password: 9Fh+%T2JfUGPF/&
+
+# Cloudinary (media storage/optimization) — from cloudinary.com dashboard
+CLOUDINARY_CLOUD_NAME=qcnwhv3x
+CLOUDINARY_API_KEY=772832139414374
+CLOUDINARY_API_SECRET=cRtWdtzjf3RpxdTyQ-O-5Zep78o
+
+# Supabase (stores photo metadata: album, caption, url) — from Settings > API
+NEXT_PUBLIC_SUPABASE_URL=https://smawwewarbsblivbfhqd.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtYXd3ZXdhcmJzYmxpdmJmaHFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNzQ0NTgsImV4cCI6MjA5OTg1MDQ1OH0.SUKLgmVeBZeDlcBicvzaGzJ810EcjvGuLFWLep69du8
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtYXd3ZXdhcmJzYmxpdmJmaHFkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDI3NDQ1OCwiZXhwIjoyMDk5ODUwNDU4fQ.H_hAHUvprANt-vu_iW8vaFQ9w3e25jN0JQzlAvNJ720
+
+# Password for the /admin upload page
+ADMIN_PASSWORD=9Fh+%T2JfUGPF/&

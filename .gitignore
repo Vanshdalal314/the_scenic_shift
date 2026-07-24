@@ -1,0 +1,7 @@
+.vercel
+.env.local
+.next
+node_modules
+"Authenticated Values.txt"
+favicon_io
+google-cloud-console.json
