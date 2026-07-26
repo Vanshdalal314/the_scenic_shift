@@ -1,5 +1,5 @@
 import { getAlbums, getAlbumCover } from "@/lib/photos";
-import AlbumCard from "@/components/AlbumCard";
+import AlbumGrid from "@/components/AlbumGrid";
 
 export const revalidate = 0;
 
@@ -24,10 +24,8 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 pb-20 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
-        {albumsWithCovers.map((album, index) => (
-          <AlbumCard key={album.slug} album={album} index={index} />
-        ))}
+      <section className="max-w-6xl mx-auto px-6 pb-20">
+        <AlbumGrid albums={albumsWithCovers} />
       </section>
     </div>
   );

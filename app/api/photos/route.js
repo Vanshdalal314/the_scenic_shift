@@ -12,11 +12,17 @@ export async function POST(req) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Bump the album's updated_at so it moves to the top of "Recently Updated" sort
+  await supabaseAdmin
+    .from("albums")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("slug", album);
+
   return NextResponse.json({ data });
 }
 
 export async function GET() {
-  // Public read — anon key is fine here since RLS allows SELECT for everyone
   const { data, error } = await supabase
     .from("photos")
     .select("*")
