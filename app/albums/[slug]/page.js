@@ -20,6 +20,13 @@ export default async function AlbumPage({ params }) {
 
   const photos = await getAlbumPhotos(slug);
 
+  const grouped = photos.reduce((acc, photo) => {
+    const key = photo.location || album.title;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(photo);
+    return acc;
+  }, {});
+
   return (
     <div className="max-w-6xl mx-auto px-6 pt-12 pb-24">
       <Link
@@ -39,7 +46,14 @@ export default async function AlbumPage({ params }) {
             No photos in this album yet.
           </p>
         ) : (
-          <Gallery photos={photos} />
+          Object.entries(grouped).map(([location, locationPhotos]) => (
+            <div key={location} className="mb-12">
+              <h3 className="text-lg font-medium mb-4 text-black/80 dark:text-white/80">
+                {location}
+              </h3>
+              <Gallery photos={locationPhotos} />
+            </div>
+          ))
         )}
       </div>
     </div>

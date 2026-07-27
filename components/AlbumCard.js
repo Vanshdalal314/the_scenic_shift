@@ -24,8 +24,12 @@ export default function AlbumCard({ album, index }) {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
       <div className="absolute bottom-0 left-0 p-3 md:p-5">
-        <h2 className="text-sm md:text-xl font-medium text-white">{album.title}</h2>
-        <p className="text-xs md:text-sm text-white/70 mt-0.5 md:mt-1 line-clamp-1">{album.description}</p>
+        <h2 className="text-sm md:text-xl font-medium text-white">
+          {album.title}
+        </h2>
+        <p className="text-xs md:text-sm text-white/70 mt-0.5 md:mt-1 line-clamp-1">
+          {album.description}
+        </p>
       </div>
     </Link>
   );

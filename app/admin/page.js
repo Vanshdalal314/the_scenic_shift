@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import imageCompression from "browser-image-compression";
+import { useLocationSearch } from "@/lib/useLocationSearch";
 
 export default function AdminPage() {
   const [authChecked, setAuthChecked] = useState(false);
@@ -22,13 +23,36 @@ export default function AdminPage() {
   const [editDesc, setEditDesc] = useState("");
   const [uploadedCount, setUploadedCount] = useState(0);
   const [totalToUpload, setTotalToUpload] = useState(0);
+  const [locations, setLocations] = useState([]);
+  const [location, setLocation] = useState("");
+
+  const placeSuggestions = useLocationSearch(location);
+  const allSuggestions = [
+    ...new Set([...locations.map((l) => l.name), ...placeSuggestions]),
+  ];
 
   useEffect(() => {
     if (authed) {
       loadPhotos();
       loadAlbums();
+      loadLocations();
     }
   }, [authed]);
+
+  async function loadLocations() {
+    const res = await fetch("/api/locations");
+    const { data } = await res.json();
+    setLocations(data || []);
+  }
+
+  async function registerLocation(name) {
+    if (!name || !name.trim()) return;
+    await fetch("/api/locations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+  }
 
   function startEdit(a) {
     setEditingSlug(a.slug);
@@ -147,6 +171,7 @@ export default function AdminPage() {
         public_id: uploaded.public_id,
         resource_type: resourceType,
         caption,
+        location,
       }),
     });
 
@@ -172,6 +197,10 @@ export default function AdminPage() {
       failCount += results.filter((r) => r.status === "rejected").length;
     }
 
+    if (location.trim()) {
+      await registerLocation(location);
+    }
+
     setMessage(
       failCount === 0
         ? `Uploaded ${successCount} file(s) successfully!`
@@ -179,7 +208,9 @@ export default function AdminPage() {
     );
     setFiles([]);
     setCaption("");
+    setLocation("");
     loadPhotos();
+    loadLocations();
     setUploading(false);
   }
 
@@ -202,6 +233,19 @@ export default function AdminPage() {
     }
 
     loadAlbums();
+  }
+
+  async function updatePhotoLocation(id, newLocation) {
+    await fetch(`/api/photos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ location: newLocation }),
+    });
+    if (newLocation.trim()) {
+      await registerLocation(newLocation);
+      loadLocations();
+    }
+    loadPhotos();
   }
 
   if (!authed) {
@@ -227,6 +271,12 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-16">
+      <datalist id="location-suggestions">
+        {allSuggestions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
       <form
         onSubmit={handleCreateAlbum}
         className="space-y-3 mb-12 border-b border-black/10 dark:border-white/10 pb-8"
@@ -331,6 +381,15 @@ export default function AdminPage() {
           ))}
         </select>
 
+        <input
+          type="text"
+          list="location-suggestions"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Location (e.g. Gangtok, Sikkim)"
+          className="w-full border border-black/20 dark:border-white/20 bg-transparent px-4 py-2 rounded placeholder:text-black/40 dark:placeholder:text-white/40"
+        />
+
         <div>
           <input
             ref={fileInputRef}
@@ -406,6 +465,14 @@ export default function AdminPage() {
             <p className="text-xs text-black/50 dark:text-white/50 mt-1">
               {p.album}
             </p>
+            <input
+              type="text"
+              list="location-suggestions"
+              defaultValue={p.location || ""}
+              onBlur={(e) => updatePhotoLocation(p.id, e.target.value)}
+              placeholder="Add location"
+              className="w-full text-xs border border-black/20 dark:border-white/20 bg-transparent px-2 py-1 rounded mt-1 placeholder:text-black/40 dark:placeholder:text-white/40"
+            />
             <button
               onClick={() => handleDelete(p.id)}
               className="text-xs text-red-400 mt-1"

@@ -3,17 +3,17 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
-  const { album, src, public_id, resource_type, caption } = await req.json();
+  const { album, src, public_id, resource_type, caption, location } =
+    await req.json();
 
   const { data, error } = await supabaseAdmin
     .from("photos")
-    .insert([{ album, src, public_id, resource_type, caption }])
+    .insert([{ album, src, public_id, resource_type, caption, location }])
     .select();
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Bump the album's updated_at so it moves to the top of "Recently Updated" sort
   await supabaseAdmin
     .from("albums")
     .update({ updated_at: new Date().toISOString() })

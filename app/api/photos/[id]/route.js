@@ -23,3 +23,16 @@ export async function DELETE(req, { params }) {
 
   return NextResponse.json({ success: true });
 }
+
+export async function PATCH(req, { params }) {
+  const { id } = await params;
+  const { location } = await req.json();
+
+  const { error } = await supabaseAdmin
+    .from("photos")
+    .update({ location })
+    .eq("id", id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

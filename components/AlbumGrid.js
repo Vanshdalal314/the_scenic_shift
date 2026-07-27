@@ -39,7 +39,6 @@ function sortAlbums(albums, sortBy) {
 
 export default function AlbumGrid({ albums }) {
   const [sortBy, setSortBy] = useState("recent");
-
   const sortedAlbums = useMemo(
     () => sortAlbums(albums, sortBy),
     [albums, sortBy],
