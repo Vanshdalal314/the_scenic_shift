@@ -1,8 +1,13 @@
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { isAuthed } from "@/lib/checkAdminAuth";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
+  if (!(await isAuthed())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { album, src, public_id, resource_type, caption, location } =
     await req.json();
 

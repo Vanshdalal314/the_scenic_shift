@@ -25,10 +25,14 @@ export default function AdminPage() {
   const [totalToUpload, setTotalToUpload] = useState(0);
   const [locations, setLocations] = useState([]);
   const [location, setLocation] = useState("");
+  const [bulkLocation, setBulkLocation] = useState("");
 
   const placeSuggestions = useLocationSearch(location);
   const allSuggestions = [
-    ...new Set([...locations.map((l) => l.name), ...placeSuggestions]),
+    ...new Set([
+      ...locations.map((l) => l.name),
+      ...placeSuggestions.map((p) => p.name),
+    ]),
   ];
 
   useEffect(() => {
@@ -47,11 +51,85 @@ export default function AdminPage() {
 
   async function registerLocation(name) {
     if (!name || !name.trim()) return;
-    await fetch("/api/locations", {
+    const res = await fetch("/api/locations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name.trim() }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("Failed to register location:", res.status, err);
+    }
+  }
+
+  async function bulkSetLocation(newLocation) {
+    if (!newLocation.trim()) return;
+    await Promise.all(
+      [...selectedIds].map((id) =>
+        fetch(`/api/photos/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ location: newLocation.trim() }),
+        }),
+      ),
+    );
+    await registerLocation(newLocation);
+    setBulkLocation("");
+    setSelectedIds(new Set());
+    loadPhotos();
+    loadLocations();
+  }
+
+  async function setCover(photoId, albumSlug) {
+    await fetch(`/api/albums/${albumSlug}/cover`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo_id: photoId }),
+    });
+    alert("Cover updated!");
+  }
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === photos.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(photos.map((p) => p.id)));
+    }
+  }
+
+  async function bulkDelete() {
+    if (!confirm(`Delete ${selectedIds.size} photo(s)?`)) return;
+    await Promise.all(
+      [...selectedIds].map((id) =>
+        fetch(`/api/photos/${id}`, { method: "DELETE" }),
+      ),
+    );
+    setSelectedIds(new Set());
+    loadPhotos();
+  }
+
+  async function bulkMove(newAlbum) {
+    await Promise.all(
+      [...selectedIds].map((id) =>
+        fetch(`/api/photos/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ album: newAlbum }),
+        }),
+      ),
+    );
+    setSelectedIds(new Set());
+    loadPhotos();
   }
 
   function startEdit(a) {
@@ -386,7 +464,7 @@ export default function AdminPage() {
           list="location-suggestions"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          placeholder="Location (e.g. Gangtok, Sikkim)"
+          placeholder="Enter Location"
           className="w-full border border-black/20 dark:border-white/20 bg-transparent px-4 py-2 rounded placeholder:text-black/40 dark:placeholder:text-white/40"
         />
 
@@ -446,10 +524,71 @@ export default function AdminPage() {
         )}
       </form>
 
-      <h2 className="text-lg mb-4">Existing photos ({photos.length})</h2>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg">Existing photos ({photos.length})</h2>
+        {photos.length > 0 && (
+          <label className="flex items-center gap-2 text-xs text-black/60 dark:text-white/60 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === photos.length && photos.length > 0}
+              onChange={toggleSelectAll}
+              className="w-4 h-4"
+            />
+            Select all
+          </label>
+        )}
+      </div>
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 border border-black/20 dark:border-white/20 rounded">
+          <span className="text-sm">{selectedIds.size} selected</span>
+
+          <button
+            onClick={bulkDelete}
+            className="text-xs border border-red-400/40 text-red-400 px-3 py-1.5 rounded hover:bg-red-400 hover:text-black transition-colors"
+          >
+            Delete selected
+          </button>
+
+          <select
+            onChange={(e) => e.target.value && bulkMove(e.target.value)}
+            className="text-xs border border-black/20 dark:border-white/20 bg-white dark:bg-black px-3 py-1.5 rounded"
+          >
+            <option value="">Move to album...</option>
+            {albums.map((a) => (
+              <option key={a.slug} value={a.slug}>
+                {a.title}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              list="location-suggestions"
+              value={bulkLocation}
+              onChange={(e) => setBulkLocation(e.target.value)}
+              placeholder="Set location for all..."
+              className="text-xs border border-black/20 dark:border-white/20 bg-transparent px-3 py-1.5 rounded placeholder:text-black/40 dark:placeholder:text-white/40"
+            />
+            <button
+              onClick={() => bulkSetLocation(bulkLocation)}
+              disabled={!bulkLocation.trim()}
+              className="text-xs border border-black/30 dark:border-white/30 px-3 py-1.5 rounded hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors disabled:opacity-40"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4">
         {photos.map((p) => (
           <div key={p.id} className="relative">
+            <input
+              type="checkbox"
+              checked={selectedIds.has(p.id)}
+              onChange={() => toggleSelect(p.id)}
+              className="absolute top-2 left-2 z-10 w-4 h-4"
+            />
             {p.resource_type === "video" ? (
               <video
                 src={p.src}
@@ -465,20 +604,49 @@ export default function AdminPage() {
             <p className="text-xs text-black/50 dark:text-white/50 mt-1">
               {p.album}
             </p>
-            <input
-              type="text"
-              list="location-suggestions"
-              defaultValue={p.location || ""}
-              onBlur={(e) => updatePhotoLocation(p.id, e.target.value)}
-              placeholder="Add location"
-              className="w-full text-xs border border-black/20 dark:border-white/20 bg-transparent px-2 py-1 rounded mt-1 placeholder:text-black/40 dark:placeholder:text-white/40"
-            />
-            <button
-              onClick={() => handleDelete(p.id)}
-              className="text-xs text-red-400 mt-1"
-            >
-              Delete
-            </button>
+            <div className="flex items-center gap-1 mt-1">
+              <svg
+                className="w-3 h-3 text-black/50 dark:text-white/50 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                list="location-suggestions"
+                defaultValue={p.location || ""}
+                onBlur={(e) => updatePhotoLocation(p.id, e.target.value)}
+                placeholder="Location"
+                className="flex-1 min-w-0 text-xs border border-black/20 dark:border-white/20 bg-transparent px-2 py-1 rounded placeholder:text-black/40 dark:placeholder:text-white/40"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 mt-2">
+              <button
+                onClick={() => setCover(p.id, p.album)}
+                className="flex-1 text-xs border border-black/20 dark:border-white/20 px-2 py-1.5 rounded hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+              >
+                Set as cover
+              </button>
+              <button
+                onClick={() => handleDelete(p.id)}
+                className="flex-1 text-xs border border-red-400/40 text-red-400 px-2 py-1.5 rounded hover:bg-red-400 hover:text-black transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>

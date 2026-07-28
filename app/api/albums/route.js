@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { isAuthed } from "@/lib/checkAdminAuth";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -7,13 +8,16 @@ export async function GET() {
     .from("albums")
     .select("*")
     .order("updated_at", { ascending: false });
-
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }
 
 export async function POST(req) {
+  if (!(await isAuthed())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { slug, title, description } = await req.json();
   const { data, error } = await supabaseAdmin
     .from("albums")

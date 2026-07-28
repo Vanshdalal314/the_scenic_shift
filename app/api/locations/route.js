@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { isAuthed } from "@/lib/checkAdminAuth";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -13,6 +14,10 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  if (!(await isAuthed())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { name } = await req.json();
   const { data, error } = await supabaseAdmin
     .from("locations")

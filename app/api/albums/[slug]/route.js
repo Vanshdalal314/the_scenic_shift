@@ -1,7 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { isAuthed } from "@/lib/checkAdminAuth";
 import { NextResponse } from "next/server";
 
 export async function PATCH(req, { params }) {
+  if (!(await isAuthed())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { slug } = await params;
   const { title, description } = await req.json();
 
@@ -17,9 +22,12 @@ export async function PATCH(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
+  if (!(await isAuthed())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { slug } = await params;
 
-  // Block deletion if the album still has photos in it
   const { count, error: countError } = await supabaseAdmin
     .from("photos")
     .select("*", { count: "exact", head: true })
