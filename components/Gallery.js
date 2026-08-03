@@ -7,6 +7,7 @@ import { useReveal } from "@/components/Reveal";
 
 function PhotoTile({ photo, index, onClick }) {
   const reveal = useReveal((index % 6) * 60);
+  const isVideo = photo.resource_type === "video";
 
   return (
     <button
@@ -15,16 +16,37 @@ function PhotoTile({ photo, index, onClick }) {
       onClick={onClick}
       className={`block w-full break-inside-avoid relative rounded-lg overflow-hidden group ${reveal.className}`}
     >
-      <Image
-        src={photo.src}
-        alt={photo.alt}
-        width={800}
-        height={1000}
-        placeholder="blur"
-        blurDataURL={shimmerBlurDataURL()}
-        sizes="(max-width: 768px) 100vw, 33vw"
-        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-      />
+      {isVideo ? (
+        <>
+          <video
+            src={photo.src}
+            className="w-full h-auto object-cover"
+            muted
+            playsInline
+            preload="metadata"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+            <svg
+              className="w-10 h-10 text-white drop-shadow-lg"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </>
+      ) : (
+        <Image
+          src={photo.src}
+          alt={photo.alt}
+          width={800}
+          height={1000}
+          placeholder="blur"
+          blurDataURL={shimmerBlurDataURL()}
+          sizes="(max-width: 768px) 100vw, 33vw"
+          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      )}
     </button>
   );
 }
@@ -64,9 +86,10 @@ export default function Gallery({ photos }) {
 
       const link = document.createElement("a");
       link.href = url;
+      const ext = photo.resource_type === "video" ? "mp4" : "jpg";
       link.download = photo.caption
-        ? `${photo.caption.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.jpg`
-        : "photo.jpg";
+        ? `${photo.caption.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.${ext}`
+        : `download.${ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -151,12 +174,23 @@ export default function Gallery({ photos }) {
             className="flex flex-col items-center justify-center max-w-full max-h-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={photos[activeIndex].src}
-              alt={photos[activeIndex].alt}
-              className="max-w-full object-contain rounded"
-              style={{ maxHeight: "calc(100vh - 140px)" }}
-            />
+            {photos[activeIndex].resource_type === "video" ? (
+              <video
+                src={photos[activeIndex].src}
+                className="max-w-full object-contain rounded"
+                style={{ maxHeight: "calc(100vh - 140px)" }}
+                controls
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <img
+                src={photos[activeIndex].src}
+                alt={photos[activeIndex].alt}
+                className="max-w-full object-contain rounded"
+                style={{ maxHeight: "calc(100vh - 140px)" }}
+              />
+            )}
             <div className="flex items-center justify-center gap-3 mt-3 flex-shrink-0">
               {photos[activeIndex].caption && (
                 <p className="text-white/60 text-sm mr-2">

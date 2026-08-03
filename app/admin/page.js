@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [locations, setLocations] = useState([]);
   const [location, setLocation] = useState("");
   const [bulkLocation, setBulkLocation] = useState("");
+  const [coverUploading, setCoverUploading] = useState(null); // tracks which album slug is uploading
 
   const placeSuggestions = useLocationSearch(location);
   const allSuggestions = [
@@ -87,6 +88,64 @@ export default function AdminPage() {
       body: JSON.stringify({ photo_id: photoId }),
     });
     alert("Cover updated!");
+  }
+
+  async function uploadAlbumCover(file, albumSlug) {
+    setCoverUploading(albumSlug);
+    try {
+      let uploadFile = file;
+      try {
+        uploadFile = await imageCompression(file, {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1600,
+          useWebWorker: true,
+          fileType: "image/jpeg",
+        });
+      } catch (err) {
+        console.warn("Compression failed, uploading original:", err);
+      }
+
+      const signRes = await fetch("/api/sign-upload", { method: "POST" });
+      const { timestamp, signature, cloudName, apiKey, folder } =
+        await signRes.json();
+
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formData },
+      );
+      const uploaded = await uploadRes.json();
+      if (uploaded.error) throw new Error(uploaded.error.message);
+
+      const finalUrl = uploaded.secure_url.replace(/\.\w+$/, ".jpg");
+
+      await fetch(`/api/albums/${albumSlug}/cover`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cover_image_url: finalUrl }),
+      });
+
+      alert("Cover updated!");
+    } catch (err) {
+      alert("Cover upload failed: " + err.message);
+    } finally {
+      setCoverUploading(null);
+    }
+  }
+
+  async function clearAlbumCover(albumSlug) {
+    await fetch(`/api/albums/${albumSlug}/cover`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cover_image_url: null }),
+    });
+    alert("Cover reset to latest photo.");
   }
 
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -386,7 +445,7 @@ export default function AdminPage() {
           {albums.map((a) => (
             <div
               key={a.slug}
-              className="border border-black/10 dark:border-white/10 rounded p-3"
+              className="relative border border-black/10 dark:border-white/10 rounded p-3"
             >
               {editingSlug === a.slug ? (
                 <div className="space-y-2">
@@ -417,25 +476,60 @@ export default function AdminPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-between items-center">
-                  <div>
+                <div>
+                  <button
+                    onClick={() => handleDeleteAlbum(a.slug)}
+                    className="absolute top-2 right-2 text-red-400 hover:text-red-300 p-1"
+                    aria-label="Delete album"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+
+                  <div className="mb-3 pr-8">
                     <p className="font-medium">{a.title}</p>
                     <p className="text-xs text-black/50 dark:text-white/50">
                       {a.description}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => startEdit(a)}
                       className="text-xs border border-black/30 dark:border-white/30 px-3 py-1 rounded hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                     >
                       Rename
                     </button>
+                    <label className="text-xs border border-black/30 dark:border-white/30 px-3 py-1 rounded hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black cursor-pointer">
+                      {coverUploading === a.slug
+                        ? "Uploading..."
+                        : "Upload cover"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files[0])
+                            uploadAlbumCover(e.target.files[0], a.slug);
+                        }}
+                      />
+                    </label>
                     <button
-                      onClick={() => handleDeleteAlbum(a.slug)}
-                      className="text-xs border border-red-400/50 text-red-400 px-3 py-1 rounded hover:bg-red-400 hover:text-black"
+                      onClick={() => clearAlbumCover(a.slug)}
+                      className="text-xs text-black/50 dark:text-white/50 px-3 py-1"
                     >
-                      Delete
+                      Use latest photo
                     </button>
                   </div>
                 </div>
