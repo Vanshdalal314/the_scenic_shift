@@ -1,5 +1,5 @@
 import { getAlbumMeta, getAlbumPhotos } from "@/lib/photos";
-import Gallery from "@/components/Gallery";
+import AlbumContent from "@/components/AlbumContent";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -10,7 +10,7 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const album = await getAlbumMeta(slug);
   if (!album) return {};
-  return { title: `${album.title} | Your Name Photography` };
+  return { title: `${album.title} | Vansh D` };
 }
 
 export default async function AlbumPage({ params }) {
@@ -19,13 +19,6 @@ export default async function AlbumPage({ params }) {
   if (!album) return notFound();
 
   const photos = await getAlbumPhotos(slug);
-
-  const grouped = photos.reduce((acc, photo) => {
-    const key = photo.location || album.title;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(photo);
-    return acc;
-  }, {});
 
   return (
     <div className="max-w-6xl mx-auto px-6 pt-12 pb-24">
@@ -41,20 +34,7 @@ export default async function AlbumPage({ params }) {
       </p>
 
       <div className="mt-10">
-        {photos.length === 0 ? (
-          <p className="text-black/40 dark:text-white/40">
-            No photos in this album yet.
-          </p>
-        ) : (
-          Object.entries(grouped).map(([location, locationPhotos]) => (
-            <div key={location} className="mb-12">
-              <h3 className="text-lg font-medium mb-4 text-black/80 dark:text-white/80">
-                {location}
-              </h3>
-              <Gallery photos={locationPhotos} />
-            </div>
-          ))
-        )}
+        <AlbumContent photos={photos} albumTitle={album.title} />
       </div>
     </div>
   );

@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [location, setLocation] = useState("");
   const [bulkLocation, setBulkLocation] = useState("");
   const [coverUploading, setCoverUploading] = useState(null); // tracks which album slug is uploading
+  const [filterAlbum, setFilterAlbum] = useState("");
 
   const placeSuggestions = useLocationSearch(location);
   const allSuggestions = [
@@ -35,6 +36,10 @@ export default function AdminPage() {
       ...placeSuggestions.map((p) => p.name),
     ]),
   ];
+
+  const filteredPhotos = filterAlbum
+    ? photos.filter((p) => p.album === filterAlbum)
+    : photos;
 
   useEffect(() => {
     if (authed) {
@@ -159,10 +164,10 @@ export default function AdminPage() {
   }
 
   function toggleSelectAll() {
-    if (selectedIds.size === photos.length) {
+    if (selectedIds.size === filteredPhotos.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(photos.map((p) => p.id)));
+      setSelectedIds(new Set(filteredPhotos.map((p) => p.id)));
     }
   }
 
@@ -618,19 +623,43 @@ export default function AdminPage() {
         )}
       </form>
 
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg">Existing photos ({photos.length})</h2>
-        {photos.length > 0 && (
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <h2 className="text-lg">
+          Existing photos ({filteredPhotos.length}
+          {filterAlbum
+            ? ` in ${albums.find((a) => a.slug === filterAlbum)?.title || filterAlbum}`
+            : ""}
+          )
+        </h2>
+        {filteredPhotos.length > 0 && (
           <label className="flex items-center gap-2 text-xs text-black/60 dark:text-white/60 cursor-pointer">
             <input
               type="checkbox"
-              checked={selectedIds.size === photos.length && photos.length > 0}
+              checked={
+                selectedIds.size === filteredPhotos.length &&
+                filteredPhotos.length > 0
+              }
               onChange={toggleSelectAll}
               className="w-4 h-4"
             />
             Select all
           </label>
         )}
+      </div>
+
+      <div className="mb-6">
+        <select
+          value={filterAlbum}
+          onChange={(e) => setFilterAlbum(e.target.value)}
+          className="text-sm border border-black/20 dark:border-white/20 bg-white dark:bg-black px-3 py-1.5 rounded"
+        >
+          <option value="">All albums</option>
+          {albums.map((a) => (
+            <option key={a.slug} value={a.slug}>
+              {a.title}
+            </option>
+          ))}
+        </select>
       </div>
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 mb-4 p-3 border border-black/20 dark:border-white/20 rounded">
@@ -675,7 +704,7 @@ export default function AdminPage() {
         </div>
       )}
       <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4">
-        {photos.map((p) => (
+        {filteredPhotos.map((p) => (
           <div key={p.id} className="relative">
             <input
               type="checkbox"
